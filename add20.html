@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>20 以内加减法小游戏</title>
+<!-- 在线字体 -->
+<link href="https://fonts.font.im/css?family=ZCOOL+KuaiLe" rel="stylesheet">
+<style>
+:root{--orange:#FF9D00;--yellow:#FFD966;--bg-start:#FFF7E6;--bg-end:#FFEFD1;--radius:16px;}
+html{font-size:16px;}body{margin:0;min-height:100vh;font-family:'ZCOOL KuaiLe','PingFang SC',sans-serif;background:linear-gradient(var(--bg-start),var(--bg-end));display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+header{margin-top:1rem;font-size:1.6rem;color:var(--orange);}header .scoreBoard{font-size:.9rem;color:#555;margin-top:.3rem;line-height:1.4}
+main{width:90%;max-width:600px;flex:1;display:flex;flex-direction:column;align-items:center;}
+button{background:var(--orange);border:none;border-radius:var(--radius);padding:.6rem 1rem;font-size:1rem;color:#fff;cursor:pointer;margin:.3rem;box-shadow:0 4px 0 rgba(0,0,0,.15);}button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15);}#submit{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);background:var(--yellow);color:#000;font-weight:bold;}#submit.hidden{display:none}
+.questions{list-style:none;padding:0;width:100%;}
+.questions li{background:#fff;border-radius:var(--radius);margin:.5rem 0;padding:.8rem 1rem;font-size:1.4rem;display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;}
+.questions input{width:4rem;font-size:1.4rem;text-align:center;border:2px solid #ccc;border-radius:8px;outline:none;transition:border-color .3s;}
+.correct{color:green;}.correct input{border-color:green;color:green;}.wrong{color:red;}.wrong input{border-color:red;color:red;}
+.toast{position:fixed;top:-50px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:.5rem 1rem;border-radius:var(--radius);font-size:.9rem;z-index:1000;animation:slideIn 3s forwards;}@keyframes slideIn{0%{top:-50px;opacity:0;}10%{top:1rem;opacity:1;}90%{top:1rem;opacity:1;}100%{top:-50px;opacity:0;}}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;justify-content:center;align-items:center;z-index:999;}
+.popup{background:#fff;border-radius:var(--radius);padding:2rem 3rem;text-align:center;animation:popIn .4s;}@keyframes popIn{0%{transform:scale(0);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.popup .star{width:40px;height:40px;display:inline-block;margin:0 .3rem;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFD966"><polygon points="12,2 15,9 22,9 16.5,14 18.8,21 12,17 5.2,21 7.5,14 2,9 9,9"/></svg>') center/contain no-repeat;animation:twinkle 1.2s ease-in-out infinite;}@keyframes twinkle{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+.msg{font-size:1.4rem;margin:1rem 0 0;}.submsg{font-size:1rem;color:var(--orange);margin:.4rem 0 0;line-height:1.4;}
+@keyframes starFall{0%{transform:translateY(-10vh) rotate(0);opacity:1;}100%{transform:translateY(110vh) rotate(360deg);opacity:0;}}
+.rain-star{position:fixed;top:-2rem;pointer-events:none;z-index:1200;font-size:1.4rem;color:var(--yellow);animation:starFall linear forwards;}
+</style>
+</head>
+<body>
+<header>20 以内加减法小游戏
+  <div class="scoreBoard">
+    分数记录: <span id="scoresList">-</span><br/>
+    🏆 最高: <span id="best">0</span> 分 (<span id="bestTimes">0</span> 次)
+  </div>
+</header>
+<main>
+  <div class="btn-group"><button id="btn10">🎲 10 以内</button><button id="btn20">🎲 20 以内</button></div>
+  <ul class="questions"></ul>
+</main>
+<button id="submit" class="hidden">📝 交卷</button>
+<template id="celebrateTpl"><div class="mask"><div class="popup"><div><span class="star"></span><span class="star"></span><span class="star"></span></div><p class="msg"></p><p class="submsg"></p></div></div></template>
+<audio id="cheer" src="https://cdn.jsdelivr.net/gh/Choudy/short-audio@main/applause.mp3"></audio>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+/* === 全局引用 === */
+const ul=$('.questions');const submitBtn=$('#submit');
+const scoresSpan=$('#scoresList');const bestSpan=$('#best');const bestTimesSpan=$('#bestTimes');
+/* === 状态 === */
+let questions=[],exprSet=new Set();let quizStart=0;let rain=null;let playMinutes=parseInt(localStorage.playMinutes||0);
+let scores=JSON.parse(localStorage.scores||'[]');
+/* === 初始化看板 === */
+updateScoreBoard();
+/* === 绑定 === */
+$('#btn10').onclick=()=>genQuiz(10);$('#btn20').onclick=()=>genQuiz(20);submitBtn.onclick=handleSubmit;
+/* === 工具 === */
+const rand=n=>Math.floor(Math.random()*n);const randBetween=(a,b)=>rand(b-a+1)+a;
+function toast(msg){const div=document.createElement('div');div.className='toast';div.textContent=msg;document.body.appendChild(div);setTimeout(()=>div.remove(),3000);} 
+/* === 星星雨控制 === */
+function startStarRain(interval){if(rain) return;rain=setInterval(()=>{const star=document.createElement('div');star.className='rain-star';star.textContent='⭐';star.style.left=Math.random()*100+'%';star.style.fontSize=(1+Math.random())+'rem';const dur=3+Math.random()*3;star.style.animationDuration=dur+'s';document.body.appendChild(star);setTimeout(()=>star.remove(),dur*1000+500);},interval);} 
+function stopStarRain(){if(rain){clearInterval(rain);rain=null;}$$('.rain-star').forEach(n=>n.remove());}
+/* === 生成题目 === */
+function genQuiz(max){stopStarRain();quizStart=Date.now();questions=[];exprSet.clear();ul.innerHTML='';createCat1(max,6);createCat2(max,8);createCat3(max,6);submitBtn.classList.remove('hidden');}
+function createCat1(max,c){while(c){let a=randBetween(1,max),b=randBetween(1,max),op=Math.random()<.5?'+':'-';if(op==='-'&&a===b)continue;if(op==='+'&&b===0)continue;let ans=op==='+'?a+b:a-b;if(ans<0||ans>max)continue;const expr=`${a} ${op} ${b}`;if(exprSet.has(expr))continue;exprSet.add(expr);pushRow(expr,ans);c--;} }
+function createCat2(max,c){while(c){let a=randBetween(1,max),b=randBetween(1,max),c2=randBetween(1,max);let op1=Math.random()<.5?'+':'-';let op2=Math.random()<.5?'+':'-';if(op1==='-'&&a===b)continue;if(op1==='+'&&b===0)continue;let tmp=op1==='+'?a+b:a-b;if(tmp<0||tmp>max)continue;if(op2==='-'&&tmp===c2)continue;if(op2==='+'&&c2===0)continue;let ans=op2==='+'?tmp+c2:tmp-c2;if(ans<0||ans>max)continue;const expr=`${a} ${op1} ${b} ${op2} ${c2}`;if(exprSet.has(expr))continue;exprSet.add(expr);pushRow(expr,ans);c--;}}
+function createCat3(max,c){while(c){let known=randBetween(1,max),ans=randBetween(0,max);let op=Math.random()<.5?'+':'-';let total=op==='+'?known+ans:known-ans;if(total<0||total>max)continue;const key=`fill-${known}-${ans}-${op}`;if(exprSet.has(key))continue;exprSet.add(key);const li=document.createElement('li');li.innerHTML=op==='+'?`(<input type="number" />) + ${known} = ${total}`:`${known} - (<input type="number" />) = ${total}`;ul.appendChild(li);questions.push({answer:ans});c--;}}
+function pushRow(expr,ans){const li=document.createElement('li');li.innerHTML=`<span>${expr} = </span><input type="number" />`;ul.appendChild(li);questions.push({answer:ans});}
+/* === 提交 === */
+function handleSubmit(){const inputs=$$('li input');if(inputs.some(i=>i.value==='')){toast('先把题做完哦～');return;}let correct=0;inputs.forEach((inp,i)=>{const li=inp.closest('li');if(+inp.value===questions[i].answer){li.classList.add('correct');correct++;}else{li.classList.add('wrong');if(!li.querySelector('.ans')){const s=document.createElement('span');s.className='ans';s.textContent=` → 正确答案: ${questions[i].answer}`;li.appendChild(s);}}inp.disabled=true;});const score=correct*5;toast(`你得了 ${score} 分！错 ${20-correct} 题`);storeScore(score);const dur=Date.now()-quizStart;if(score>=90)celebrate(score,dur);} 
+/* === 分数存储 & 统计 === */
+function storeScore(score){scores.push(score);localStorage.scores=JSON.stringify(scores);if(score>=90){playMinutes+=10;localStorage.playMinutes=playMinutes;}updateScoreBoard();}
+function updateScoreBoard(){if(scores.length===0){scoresSpan.textContent='-';bestSpan.textContent='0';bestTimesSpan.textContent='0';return;}
+ scoresSpan.textContent=scores.join(', ');
+ const best=Math.max(...scores);bestSpan.textContent=best;
+ const times=scores.filter(s=>s===best).length;bestTimesSpan.textContent=times;}
+/* === 弹窗 === */
+const PHRASES=['你是数学小达人！','太棒啦！','继续保持哦！'];
+function msToTime(ms){const s=Math.floor(ms/1000);const m=Math.floor(s/60);const sec=s%60;return `${m}分${sec}秒`;}
+function celebrate(score,dur){startStarRain(score===100?150:300);const tpl=$('#celebrateTpl').content.cloneNode(true);tpl.querySelector('.msg').textContent=score===100?'好棒啊！全部答对！🎉':`得了 ${score} 分！🎉`;let extra='';if(score>=90){extra=`<br/>爸爸说可以玩${playMinutes}分钟~`;};if(score===100)extra+=`<br/>用时 ${msToTime(dur)}`;tpl.querySelector('.submsg').innerHTML=PHRASES[rand(PHRASES.length)]+extra;tpl.querySelector('.mask').onclick=e=>e.currentTarget.remove();document.body.appendChild(tpl);$('#cheer').play().catch(()=>{});} 
+})();
+</script>
+</body>
+</html>
