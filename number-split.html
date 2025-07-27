@@ -1,36 +1,30 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Maureen's Math Game — 拆分小游戏</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Number Split Challenge</title>
 
-<!-- ==========  样式  ========== -->
+<!-- ==========  Styles  ========== -->
 <style>
-/* 手写卡通字体（Caveat，22 KB 内嵌） */
+/* Cartoon handwriting font (Caveat, ~22 KB) */
 @font-face{
   font-family:"Caveat";
-  font-style:normal;font-weight:400;
-  src:url(data:font/woff2;base64,d09GMgABAAAAACPIAADrAAAAABuAAAAP8AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHEIGVgCDHAqDJIH4ATYCJAMQCwoABCAFhG0HdBvsB8gOgPirB0sEDWkDIYHnvfRvf6Yh5MjX+3jcBNnq0KExns+s2ehYxO9qOcFn6KrCQV/a5U7oNPOHeKC0RkDF9DGjio9YpLMdRluVlgP+685l98799r77Uvabahu+tM/Z9x86fQdAQJzXIFgCEhEQkNIOhMRb8GmwFCBXmDmBsK0KLgfhnHdCMzml7q3dD385u9rqnp/6ueL1K+LhX3tpruvytzsNufs4msfzBmmcHPoJ4xJZqJibn7aeXZbdw1rdYrihFx10mSaZTIjZNlpY0xcvf7nobQh4V+Wqx1vLEulOEzTvdRcSWSNKbHlAXzD4LvgcDi7hjDBZPH+X3LBwPJAowWsczyS0kiUDAcLFu5tRWhrvrO7b8Gh5TKXmQo2aKUkMIuxdR+eeHi+jce019H0vPt9/FbOxnU3UFCfs5770ITsbA9E78/zONvC7ioAV/fGQSKZQn7MCNtmwvPITlKeLly6cfnYH3S8fP7zmPNwJO50IiAkRomenEHiJjy+oeu5qmzKPiW+zx0v6+XnNj3D0Yv7nPxXg6Zr+7TNI6gZ1UGEYLFUoUxasJw6MXzMBTzP3Gyl9H2vz1zf177gdr8w6yP/9vvKX6hR+e/k8tPWHX2vAByUMFPn7qrR4368XDzodSt2z3pBdrVQBHxNvcHVN+rp5dgLda6L8u8x2HiN1LbS65Ya69mwolobXbq5YYexCtdv++mp7Tl+flLiHha3ZO6ji0vqWgpCRUdhQsYsNljEkGKwLEo0FZrPeu7sofwD) format('woff2');
+  font-weight:400;font-style:normal;
+  src:url(data:font/woff2;base64,d09GMgABAAAAACPIAADrAAAAABuAAAAP8AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHEIGVgCDH...) format('woff2');
 }
-
-/* -------- 颜色与排版 -------- */
-:root{
-  --bg:#FFF7E8;
-  --orange:#e67e22; --orange-dark:#d35400;
-  --blue:#3498db;   --blue-dark:#2980b9;
-}
+/* -------- Color & layout -------- */
+:root{--bg:#FFF7E8;--orange:#e67e22;--orange-dark:#d35400;--blue:#3498db;--blue-dark:#2980b9;}
 body{
   max-width:640px;margin:auto;padding:1rem;background:var(--bg);
-  font-family:"Caveat","Comic Sans MS","Baloo","Chalkboard","-apple-system",sans-serif;
+  font-family:"Caveat","Comic Sans MS","Baloo","-apple-system",sans-serif;
   font-size:20px;line-height:1.5;color:#333;
 }
 header{text-align:center;margin-bottom:1rem}
 h1{font-size:2.2rem;color:var(--orange);margin-bottom:.2rem}
 h2{font-size:1.3rem;color:#555;margin-bottom:.5rem}
 #todayStats{font-size:.9rem;color:#2c3e50;margin-bottom:1rem}
-
-/* -------- 设置面板 -------- */
+/* -------- Config panel -------- */
 #config{
   background:#fff;padding:1rem;border-radius:10px;margin-bottom:1rem;
   display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;justify-content:center;
@@ -42,45 +36,36 @@ h2{font-size:1.3rem;color:#555;margin-bottom:.5rem}
   border:2px solid #ccc;border-radius:6px;font-size:1rem;font-family:inherit;
 }
 #generateBtn{
-  padding:.55rem 1.4rem;background:var(--blue);color:#fff;
-  border:none;border-radius:8px;font-size:1rem;cursor:pointer;
-  box-shadow:0 2px 4px rgba(0,0,0,.15)
+  padding:.55rem 1.4rem;background:var(--blue);color:#fff;border:none;border-radius:8px;
+  font-size:1rem;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15)
 }
 #generateBtn:hover{background:var(--blue-dark)}
 .hidden{display:none!important}
-
-/* -------- 倒计时条 -------- */
+/* -------- Progress bar -------- */
 #progress{height:10px;background:#ddd;border-radius:5px;overflow:hidden;margin-bottom:1rem}
 #progressBar{height:100%;width:100%;background:#2ecc71;transition:width .2s linear}
-
-/* -------- 题目区 -------- */
+/* -------- Questions -------- */
 #questionList{list-style:none;padding-left:0;margin-bottom:6rem;
   display:flex;flex-direction:column;gap:1rem}
-.question{
-  font-size:1.5rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap
-}
+.question{font-size:1.5rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
 .question input{
   width:90px;text-align:center;padding:.3rem;
-  border:3px dashed #aaa;border-radius:10px;
-  background:#fffbea;font-size:1.4rem;font-family:inherit
+  border:2px solid #ccc;border-radius:8px;background:#fff;
+  font-size:1.4rem;font-family:inherit
 }
 .timeSpan{font-size:.75rem;color:#888;margin-left:auto}
 .longest .timeSpan{color:#e74c3c;font-weight:bold}
-
-/* -------- 高亮：漏答 & 错答 -------- */
+/* -------- Highlight -------- */
 .missing input{background:#ffe7e7}
 .wrong   input{background:#ffe7e7;border-color:#e74c3c;color:#d10000}
-
-/* -------- 交卷按钮 -------- */
+/* -------- Submit button -------- */
 #submitBtn{
   position:fixed;left:50%;transform:translateX(-50%);bottom:18px;
-  padding:.8rem 2.4rem;background:var(--orange);color:#fff;
-  border:none;border-radius:40px;font-size:1.2rem;cursor:pointer;
-  box-shadow:0 4px 8px rgba(0,0,0,.15)
+  padding:.8rem 2.4rem;background:var(--orange);color:#fff;border:none;border-radius:40px;
+  font-size:1.2rem;cursor:pointer;box-shadow:0 4px 8px rgba(0,0,0,.15)
 }
 #submitBtn:hover{background:var(--orange-dark)}
-
-/* -------- 弹窗 -------- */
+/* -------- Dialog -------- */
 .dialog{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}
 .dialogContent{
   background:#fff;padding:2rem;border-radius:16px;max-width:90%;text-align:center;
@@ -90,243 +75,231 @@ h2{font-size:1.3rem;color:#555;margin-bottom:.5rem}
 .dialogContent h3{font-size:2rem;color:#27ae60;margin-bottom:.6rem}
 .dialogContent p {font-size:1.1rem;margin-bottom:1.2rem}
 .dialogContent button{
-  padding:.6rem 1.6rem;background:var(--blue);color:#fff;
-  border:none;border-radius:8px;font-size:1rem;cursor:pointer
+  padding:.6rem 1.6rem;background:var(--blue);color:#fff;border:none;border-radius:8px;
+  font-size:1rem;cursor:pointer
 }
 .dialogContent button:hover{background:var(--blue-dark)}
-
-/* -------- 小动物雨 -------- */
-@keyframes fall{0%{transform:translateY(-10vh) rotate(0deg);opacity:1}
+/* -------- Emoji rain -------- */
+@keyframes fall{0%{transform:translateY(-10vh) rotate(0);opacity:1}
                 100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
-.faller{
-  position:fixed;top:-10vh;font-size:2rem;pointer-events:none;
-  animation:fall 6s linear forwards
-}
+.faller{position:fixed;top:-10vh;font-size:2rem;pointer-events:none;animation:fall 6s linear forwards}
 </style>
 </head>
 
 <body>
 <header>
-  <h1>Maureen's Math Game</h1>
-  <h2>拆分小游戏</h2>
-  <div id="todayStats">今日已练习 <span id="playCount">0</span> 次 ｜ 最高得分 <span id="bestScore">0</span></div>
+  <h1 id="title">Number Split Challenge</h1>
+  <h2 id="subtitle">Break the target into two parts!</h2>
+  <div id="todayStats">Today: <span id="playCount">0</span> ｜ Best <span id="bestScore">0</span></div>
 </header>
 
-<!-- ======== 设置面板 ======== -->
 <section id="config">
-  <label>拆分目标数
+  <label id="lblTarget">Target Number
     <input id="targetNumber" type="number" min="2" max="50" value="10">
   </label>
-  <label>时间限制 (秒)
+  <label id="lblTime">Time Limit (s)
     <input id="timeLimit" type="number" min="30" max="180" value="90">
   </label>
-  <button id="generateBtn">生成题目</button>
+  <button id="generateBtn">Generate</button>
 </section>
 
-<!-- ======== 题目区 ======== -->
 <section id="quizArea" class="hidden">
   <div id="progress"><div id="progressBar"></div></div>
   <ol id="questionList"></ol>
 </section>
 
-<button id="submitBtn" class="hidden">交卷</button>
+<button id="submitBtn" class="hidden">Submit</button>
 
-<!-- ======== 成就弹窗 ======== -->
+<!-- Dialog -->
 <div id="resultDialog" class="dialog hidden">
   <div class="dialogContent">
     <h3 id="resultTitle">Good Job!</h3>
     <p id="resultDetails"></p>
-    <button id="closeDialog">知道啦</button>
+    <button id="closeDialog">Okay</button>
   </div>
 </div>
 
-<!-- ==========  脚本  ========== -->
+<!-- ==========  Script  ========== -->
 <script>
 (() => {
 'use strict';
 
-/* ===== 工具函数 ===== */
-const $        = id => document.getElementById(id);
-const randInt  = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
-const shuffle  = arr => {for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;};
+/* -------- i18n dictionary -------- */
+const i18n = {
+  en: {
+    title: 'Number Split Challenge',
+    subtitle: 'Break the target into two parts!',
+    targetLabel: 'Target Number',
+    timeLabel: 'Time Limit (s)',
+    btnGenerate: 'Generate',
+    btnSubmit: 'Submit',
+    todayStats: (count,best)=>`Today: ${count} ｜ Best ${best}`,
+    alertFew: n=>`Only ${n} unique splits available.`,
+    perfect: 'Perfect!',
+    allCorrect:'All correct!',
+    overtime: sec=>`Overtime ${sec}s`,
+    score: s=>`Score ${s}`,
+    time: s=>`Time ${s}s`,
+    dialogOK:'Okay'
+  },
+  zh: {
+    title: '数字拆分挑战',
+    subtitle: '把目标数拆成两部分！',
+    targetLabel: '拆分目标数',
+    timeLabel: '时间限制 (秒)',
+    btnGenerate: '生成题目',
+    btnSubmit: '交卷',
+    todayStats: (count,best)=>`今日已练习 ${count} 次 ｜ 最高 ${best}`,
+    alertFew: n=>`唯一拆分仅 ${n} 种，本轮题量已减少。`,
+    perfect: '满分！太棒啦！',
+    allCorrect:'全对！再快一点！',
+    overtime: sec=>`超时 ${sec}s`,
+    score: s=>`本次得分：${s}`,
+    time: s=>`用时 ${s}s`,
+    dialogOK:'知道啦'
+  }
+};
 
-/* ===== 今日统计 (localStorage) ===== */
-const dateKey = new Date().toISOString().slice(0,10);
-let store = JSON.parse(localStorage.getItem('mmg') || '{}');
-if(!store[dateKey]) store[dateKey] = {count:0,best:0};
-const refreshStats = () => { $('playCount').textContent = store[dateKey].count; $('bestScore').textContent = store[dateKey].best; };
+/* Detect browser language */
+const lang = (navigator.language||'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+const t = i18n[lang];
+
+/* ----- DOM refs ----- */
+const $ = id => document.getElementById(id);
+$('title').textContent   = t.title;
+$('title').innerText     = t.title;
+$('subtitle').innerText  = t.subtitle;
+$('lblTarget').childNodes[0].nodeValue = t.targetLabel+' ';
+$('lblTime').childNodes[0].nodeValue   = t.timeLabel+' ';
+$('generateBtn').innerText = t.btnGenerate;
+$('submitBtn').innerText   = t.btnSubmit;
+$('closeDialog').innerText = t.dialogOK;
+
+/* Util */
+const randInt = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+const shuffle = a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const getDateKey = () => new Date().toISOString().slice(0,10);
+
+/* Stats */
+let store = JSON.parse(localStorage.getItem('msc')||'{}');
+let dateKey=getDateKey();
+if(!store[dateKey]) store[dateKey]={count:0,best:0};
+const refreshStats=()=>{ $('todayStats').innerText = t.todayStats(store[dateKey].count,store[dateKey].best); };
 refreshStats();
 
-/* ===== DOM refs ===== */
-const targetInput = $('targetNumber'),
-      timeInput   = $('timeLimit'),
-      genBtn      = $('generateBtn'),
-      quizArea    = $('quizArea'),
-      qList       = $('questionList'),
-      submitBtn   = $('submitBtn'),
-      progressBar = $('progressBar'),
-      dlg         = $('resultDialog'),
-      dlgTitle    = $('resultTitle'),
-      dlgMsg      = $('resultDetails'),
-      dlgClose    = $('closeDialog');
+/* Other refs */
+const targetInput=$('targetNumber'),timeInput=$('timeLimit');
+const genBtn=$('generateBtn'),quizArea=$('quizArea'),qList=$('questionList');
+const submitBtn=$('submitBtn'),progressBar=$('progressBar');
+const dlg=$('resultDialog'),dlgTitle=$('resultTitle'),dlgMsg=$('resultDetails'),dlgClose=$('closeDialog');
 
-/* ===== 状态变量 ===== */
-let timer      = null,
-    timeLeft   = 0,
-    startTime  = 0,
-    qTimes     = [],    // 每题耗时 (ms)
-    focusStart = null,  // 当前焦点起始时间
-    curIdx     = null,  // 当前题序
-    rainTimer  = null;
+/* State */
+let timer=null,timeLeft=0,startTime=0,qTimes=[],focusStart=null,curIdx=null,rainTimer=null;
+const animals=['🦫','🐰','🐱','🐶','🐼','🐵','🦊','🦝','🦔','🐢','🦄','🐧','🦉'];
 
-/* 小动物 emoji 池 */
-const animals = ['🦫','🐰','🐱','🐶','🐼','🐵','🦊','🦝','🦔','🐢','🦄','🐧','🦉'];
-
-/* ===== 小动物雨控制 ===== */
-const stopRain = () => {
-  if(rainTimer){ clearInterval(rainTimer); rainTimer = null; }
-  document.querySelectorAll('.faller').forEach(el => el.remove());
-};
-const startRain = emoji => {
+/* Rain */
+const stopRain=()=>{if(rainTimer){clearInterval(rainTimer);rainTimer=null;}document.querySelectorAll('.faller').forEach(el=>el.remove());};
+const startRain=emoji=>{
   stopRain();
-  rainTimer = setInterval(()=>{
-    const el = document.createElement('span');
-    el.textContent = emoji;
-    el.className   = 'faller';
-    el.style.left  = Math.random()*100 + 'vw';
-    el.style.fontSize = (1 + Math.random()*2) + 'rem';
-    el.style.animationDuration = (5 + Math.random()*3) + 's';
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),8000);
+  rainTimer=setInterval(()=>{
+    const el=document.createElement('span');
+    el.textContent=emoji;el.className='faller';
+    el.style.left=Math.random()*100+'vw';
+    el.style.fontSize=(1+Math.random()*2)+'rem';
+    el.style.animationDuration=(5+Math.random()*3)+'s';
+    document.body.appendChild(el);setTimeout(()=>el.remove(),8000);
   },250);
 };
 
-/* ============ 生成题目 ============ */
+/* Generate */
 function startGame(){
-  stopRain(); if(timer) clearInterval(timer);
+  dateKey=getDateKey();
+  if(!store[dateKey]) store[dateKey]={count:0,best:0};
+  refreshStats();
+  stopRain();if(timer)clearInterval(timer);
+  qTimes=[];focusStart=null;curIdx=null;
 
-  // 初始状态
-  qTimes = []; focusStart=null; curIdx=null;
+  const target=Math.max(2,+targetInput.value||10),
+        limit=+timeInput.value||90;
 
-  const target = Math.max(2, +targetInput.value || 10),
-        limit  = +timeInput.value   || 90;
+  let blanks=shuffle([...Array(target+1).keys()]).slice(0,Math.min(10,target+1));
+  if(blanks.length<10) alert(t.alertFew(blanks.length));
 
-  /* 唯一拆分：空在第1位 => (0..target) */
-  let blanks = Array.from({length:target+1}, (_,i)=>i); // [0..target]
-  blanks = shuffle(blanks);
-
-  if(blanks.length < 10){
-    alert('可用拆分仅 '+blanks.length+' 种，本轮题量已减少。');
-  }
-  blanks = blanks.slice(0, Math.min(10, blanks.length));
-
-  /* 渲染题目 */
-  qList.innerHTML = '';
-  blanks.forEach((blank, idx)=>{
-    const shown = target - blank;
-    const li = document.createElement('li');
-    li.className = 'question';
-    li.innerHTML = `<input type="number" class="ans" data-idx="${idx}" data-ans="${blank}" placeholder="?"> + ${shown} = ${target} <span class="timeSpan"></span>`;
+  qList.innerHTML='';
+  blanks.forEach((blank,idx)=>{
+    const shown=target-blank;
+    const li=document.createElement('li');
+    li.className='question';
+    li.innerHTML=`<input type="number" class="ans" data-idx="${idx}" data-ans="${blank}"> + ${shown} = ${target} <span class="timeSpan"></span>`;
     qList.appendChild(li);
   });
 
-  /* 焦点跟踪 */
-  qTimes = new Array(blanks.length);
+  /* focus track */
+  qTimes=new Array(blanks.length);
   qList.querySelectorAll('input.ans').forEach(inp=>{
-    inp.addEventListener('focus', ()=>{
-      const idx = +inp.dataset.idx, now = Date.now();
-      if(curIdx!==null) qTimes[curIdx] = (qTimes[curIdx]||0) + (now-focusStart);
-      curIdx = idx; focusStart = now;
+    inp.addEventListener('focus',()=>{
+      const idx=+inp.dataset.idx,now=Date.now();
+      if(curIdx!==null) qTimes[curIdx]=(qTimes[curIdx]||0)+now-focusStart;
+      curIdx=idx;focusStart=now;
     });
   });
 
-  /* 显示界面 & 倒计时 */
-  quizArea.classList.remove('hidden');
-  submitBtn.classList.remove('hidden');
-  dlg.classList.add('hidden');
-
-  timeLeft = limit;
-  progressBar.style.width = '100%'; progressBar.style.background = '#2ecc71';
-  startTime = Date.now();
-
-  timer = setInterval(()=>{
-    timeLeft--;
-    const pct = timeLeft/limit*100;
-    progressBar.style.width = pct + '%';
-    progressBar.style.background = pct<30 ? '#e74c3c' : (pct<60 ? '#f1c40f' : '#2ecc71');
-    if(timeLeft<=0){ clearInterval(timer); grade(); }
+  /* UI */
+  quizArea.classList.remove('hidden');submitBtn.classList.remove('hidden');dlg.classList.add('hidden');
+  timeLeft=limit;progressBar.style.width='100%';progressBar.style.background='#2ecc71';startTime=Date.now();
+  timer=setInterval(()=>{
+    timeLeft--;const pct=timeLeft/limit*100;
+    progressBar.style.width=pct+'%';
+    progressBar.style.background=pct<30?'#e74c3c':(pct<60?'#f1c40f':'#2ecc71');
+    if(timeLeft<=0){clearInterval(timer);grade();}
   },1000);
-
-  quizArea.scrollIntoView({behavior:'smooth'});
 }
 
-/* ============ 批改 & 结果 ============ */
+/* Grade */
 function grade(){
-  if(timer) clearInterval(timer);
-  if(curIdx!==null) qTimes[curIdx] += Date.now()-focusStart;
-
-  let total = 0, allCorrect = true;
-  const inputs = qList.querySelectorAll('input.ans');
-
-  inputs.forEach(inp=>{
-    const idx  = +inp.dataset.idx,
-          need = +inp.dataset.ans,
-          val  = +inp.value;
-
-    if(val === need){
-      total += 10;
-    }else{
-      allCorrect = false;
-      if(inp.value!=='') inp.parentNode.classList.add('wrong'); // 错答红色
-    }
-
-    if(inp.value==='')  inp.parentNode.classList.add('missing'); // 未填
-
-    // 显示耗时
-    const t = qTimes[idx] || 0;
-    inp.parentNode.querySelector('.timeSpan').textContent = ` (${(t/1000).toFixed(1)}s)`;
-
-    inp.disabled = true;
+  if(timer)clearInterval(timer);
+  if(curIdx!==null)qTimes[curIdx]+=Date.now()-focusStart;
+  let total=0,allCorrect=true;
+  qList.querySelectorAll('input.ans').forEach(inp=>{
+    const idx=+inp.dataset.idx,need=+inp.dataset.ans,val=+inp.value;
+    if(val===need){total+=10;}else{allCorrect=false;if(inp.value!=='')inp.parentNode.classList.add('wrong');}
+    if(inp.value==='')inp.parentNode.classList.add('missing');
+    inp.disabled=true;
+    const t=qTimes[idx]||0;
+    inp.parentNode.querySelector('.timeSpan').textContent=` (${(t/1000).toFixed(1)}s)`;
   });
+  const slowIdx=qTimes.indexOf(Math.max(...qTimes.map(t=>t||0)));
+  if(slowIdx>=0)qList.children[slowIdx].classList.add('longest');
 
-  // 最慢题特殊标记
-  const slowIdx = qTimes.indexOf(Math.max(...qTimes.map(t=>t||0)));
-  if(slowIdx >= 0) qList.children[slowIdx].classList.add('longest');
+  /* stats */
+  store[dateKey].count++;if(total>store[dateKey].best)store[dateKey].best=total;
+  localStorage.setItem('msc',JSON.stringify(store));refreshStats();
 
-  // 更新本地统计
-  store[dateKey].count++;
-  if(total > store[dateKey].best) store[dateKey].best = total;
-  localStorage.setItem('mmg', JSON.stringify(store));
-  refreshStats();
-
-  // 结果弹窗 & 雨动画
-  const used     = ((Date.now()-startTime)/1000).toFixed(1);
-  const overtime = Math.max(0, used - (+timeInput.value||90)).toFixed(1);
-  let emoji      = '⭐';
-
-  if(allCorrect && overtime==0){
-    dlgTitle.textContent = '满分！太棒啦！';
-    dlgMsg.textContent   = `用时 ${used}s！继续保持！`;
-    emoji = animals[randInt(0,animals.length-1)];
+  /* dialog */
+  const used=((Date.now()-startTime)/1000).toFixed(1);
+  const overtime=Math.max(0,used-(+timeInput.value||90)).toFixed(1);
+  let emoji='⭐';
+  if(allCorrect&&overtime==0){
+    dlgTitle.innerText=t.perfect;
+    dlgMsg.innerText=t.time(used);
+    emoji=animals[randInt(0,animals.length-1)];
   }else if(allCorrect){
-    dlgTitle.textContent = '全对！再快一点！';
-    dlgMsg.textContent   = `超时 ${overtime}s；总分 ${total} 分`;
+    dlgTitle.innerText=t.allCorrect;
+    dlgMsg.innerText=`${t.overtime(overtime)} ｜ ${t.score(total)}`;
   }else{
-    dlgTitle.textContent = `本次得分：${total}`;
-    dlgMsg.textContent   = `用时 ${used}s`;
+    dlgTitle.innerText=t.score(total);
+    dlgMsg.innerText=t.time(used);
   }
-
-  dlg.classList.remove('hidden');
-  submitBtn.classList.add('hidden');
+  dlg.classList.remove('hidden');submitBtn.classList.add('hidden');
   startRain(emoji);
 }
 
-/* ============ 事件绑定 ============ */
-genBtn.addEventListener('click', startGame);
-submitBtn.addEventListener('click', grade);
-dlgClose.addEventListener('click', ()=>dlg.classList.add('hidden'));
+/* Events */
+genBtn.addEventListener('click',startGame);
+submitBtn.addEventListener('click',grade);
+dlgClose.addEventListener('click',()=>dlg.classList.add('hidden'));
 
-})();  // IIFE 结束
+})();
 </script>
 </body>
 </html>
