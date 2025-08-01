@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maureen's Math Game</title>
+  <style>
+    @font-face{font-family:"Caveat";font-weight:400;font-style:normal;src:url(data:font/woff2;base64,d09GMgABAAAAACPIAADrAAAAABuAAAAP8AAE...) format('woff2');}
+    :root{--bg:#FFF7E8;--orange:#e67e22;--orangeDark:#d35400;--blue:#3498db;--blueDark:#2980b9;}
+    body{max-width:640px;margin:auto;padding:1rem;background:var(--bg);font-family:"Caveat","Comic Sans MS","Baloo","Chalkboard","-apple-system",sans-serif;line-height:1.5;color:#333;font-size:20px;}
+    header{text-align:center;margin-bottom:1rem}
+    h1{font-size:2.2rem;color:var(--orange);margin-bottom:.25rem}
+    h2{font-size:1.3rem;color:#555;margin-top:0.5rem;margin-bottom:.6rem}
+    #todayStats{font-size:.9rem;color:#2c3e50;margin-bottom:1rem}
+    #config{background:#fff;padding:1rem;border-radius:10px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;gap:1rem;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+    #config label{font-size:1rem;color:#37474f;display:flex;align-items:center;}
+    #config input[type="number"]{width:60px;padding:.3rem;border:2px solid #ccc;border-radius:6px;font-size:1rem;margin-right:.5rem}
+    #config input[type="checkbox"]{width:auto;margin-right:.5rem}
+    #genBtn{padding:.5rem 1rem;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer}
+    #genBtn:hover{background:var(--blueDark)}
+    #progress{height:10px;background:#ddd;border-radius:5px;overflow:hidden;margin:1rem 0}
+    #progressBar{width:100%;height:100%;background:#2ecc71;transition:width .2s linear}
+    #questionList{list-style:none;padding:0;margin-bottom:6rem;}
+    .question{font-size:1.5rem;margin:1em auto;color:#000;}
+    .question .main{white-space:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .question input{width:2.5em;font-size:1em;text-align:center;border:2px solid #aaa;border-radius:5px;background:#fffbea;margin:0 4px}
+    .question .decomp{display:block;text-align:left;margin:0.2em 0 0 2em;color:#999;font-size:1rem}
+    .correct{background:#c8e6c9!important}
+    .wrong{background:#ffcdd2!important}
+    #submitBtn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:.6rem 1.4rem;background:var(--orange);color:#fff;border:none;border-radius:40px;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 8px rgba(0,0,0,.1)}
+    #submitBtn:hover{background:var(--orangeDark)}
+    .dialog{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:1000}
+    .hidden{display:none!important}
+    .dialogContent{background:#fff;padding:2rem;border-radius:12px;text-align:center;box-shadow:0 8px 16px rgba(0,0,0,.2);animation:pop .3s ease-out}
+    @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+    .dialogContent h3{font-size:2rem;color:#27ae60;margin-bottom:.8rem}
+    .dialogContent p{font-size:1.1rem;margin-bottom:1.2rem}
+    .dialogContent button{padding:.6rem 1.5rem;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer}
+    .dialogContent button:hover{background:var(--blueDark)}
+    @keyframes fall{0%{transform:translateY(-15vh) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
+    .faller{position:fixed;top:-15vh;font-size:2rem;pointer-events:none;animation:fall 6s linear forwards}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Maureen's Math Game</h1>
+  <h2>3 凑十法大挑战</h2>
+  <div id="todayStats">今日已练习 <span id="playCount">0</span> 次 ｜ 最高 <span id="highScore">0</span></div>
+</header>
+<div id="config">
+  <label>⏱ 时间限制(秒)
+    <input id="timeLimit" type="number" value="300" />
+  </label>
+  <label>
+    <input id="toggleDecomp" type="checkbox" checked /> 显示拆分
+  </label>
+  <button id="genBtn">生成题目</button>
+</div>
+<div id="progress"><div id="progressBar"></div></div>
+<ol id="questionList"></ol>
+<button id="submitBtn" class="hidden">交卷</button>
+<div id="resultDialog" class="dialog hidden">
+  <div class="dialogContent">
+    <h3 id="resultTitle"></h3>
+    <p id="resultDetails"></p>
+    <button id="closeDialog">知道啦</button>
+  </div>
+</div>
+<script>
+(() => {
+  // 停止雨动画函数
+  let rainTimer;
+  function stopRain() {
+    clearInterval(rainTimer);
+    document.querySelectorAll('.faller').forEach(el=>el.remove());
+  }
+  const $ = id=>document.getElementById(id);
+  // 统计
+  const dateKey=new Date().toISOString().slice(0,10);
+  let store=JSON.parse(localStorage.getItem('splitStats')||'{}');
+  if(!store[dateKey])store[dateKey]={count:0,best:0};
+  function updateStats(){
+    $('playCount').textContent=store[dateKey].count;
+    $('highScore').textContent=store[dateKey].best;
+    localStorage.setItem('splitStats',JSON.stringify(store));
+  }
+  // 拆分题逻辑
+  function genOneProblem(){
+    let a,b,total;
+    do{a=Math.floor(Math.random()*9)+1;const maxB=20-a;b=Math.floor(Math.random()*Math.min(9,maxB))+1;total=a+b;}while(total<11||total>20);
+    const fill1=10-a,fill2=b-fill1;
+    return{main:`${a} + ${b} = 10 + <input data-ans="${fill2}" /> = <input data-ans="${total}" />`,decomp:`( ${fill1} + ${fill2} )`,ansMain:[fill2,total],ansDecomp:[fill1,fill2]};
+  }
+  // 雨动画
+  function startRain(emoji){
+    stopRain();
+    rainTimer=setInterval(()=>{const e=document.createElement('span');e.className='faller';e.textContent=emoji;e.style.left=Math.random()*100+'vw';document.body.appendChild(e);setTimeout(()=>e.remove(),8000);},300);
+  }
+  let timer,startTime;
+  function renderQuestions(){
+    stopRain();
+    $('resultDialog').classList.add('hidden');
+    $('submitBtn').classList.add('hidden');
+    const list=$('questionList');list.innerHTML='';
+    // 计时
+    clearInterval(timer);
+    const limit=+$('timeLimit').value;let rem=limit;startTime=Date.now();
+    $('progressBar').style.width='100%';
+    timer=setInterval(()=>{rem--;$('progressBar').style.width=(rem/limit*100)+'%';if(rem<=0)clearInterval(timer);},1000);
+    const show=$('toggleDecomp').checked;
+    for(let i=0;i<10;i++){const p=genOneProblem();const li=document.createElement('li');li.className='question';li.innerHTML=`<div class="main">${p.main}</div>`+(show?`<div class="decomp">${p.decomp}</div>`:'');list.appendChild(li);}    
+    $('submitBtn').classList.remove('hidden');
+  }
+  function grade(){
+    clearInterval(timer);
+    const elapsed=(Date.now()-startTime)/1000;
+    const withinTime=elapsed<=+$('timeLimit').value;
+    let correct=0,totalInputs=0;
+    document.querySelectorAll('input[data-ans]').forEach(inp=>{totalInputs++;const ans=+inp.dataset.ans,val=+inp.value;inp.classList.remove('correct','wrong');if(val===ans){inp.classList.add('correct');correct++;}else inp.classList.add('wrong');});
+    const score=Math.round(correct/totalInputs*100);
+    // 更新统计
+    store[dateKey].count++;
+    if(score>store[dateKey].best)store[dateKey].best=score;
+    updateStats();
+    // 逻辑
+    let emoji,msg;
+    if(correct===totalInputs&&withinTime){emoji='🎉';msg='限时内全对！太棒啦！';}
+    else if((correct<totalInputs&&withinTime)||(correct===totalInputs&&!withinTime)){emoji='⭐';msg=correct===totalInputs?`全对但超时 ${elapsed.toFixed(1)}s`:`用时 ${elapsed.toFixed(1)}s, 有错哦，要加油~`;}
+    else {emoji='💩';msg=`超时 ${elapsed.toFixed(1)}s, 要加油哦，再来一遍！`;}
+    $('resultTitle').textContent=score===100?'满分！太棒啦！':`得分：${score}`;
+    $('resultDetails').textContent=msg;
+    $('resultDialog').classList.remove('hidden');
+    startRain(emoji);
+  }
+  $('genBtn').addEventListener('click',renderQuestions);
+  $('submitBtn').addEventListener('click',grade);
+  $('closeDialog').addEventListener('click',()=>$('resultDialog').classList.add('hidden'));
+})();
+</script>
+</body>
+</html>
