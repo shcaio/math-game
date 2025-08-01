@@ -34,7 +34,7 @@ h2{font-size:1.3rem;color:#555;margin-bottom:.6rem}
 }
 #config label{display:flex;flex-direction:column;font-size:.9rem}
 #config input{
-  width:80px;padding:.25rem .5rem;margin-top:.25rem;
+  width:60px;max-width:25vw;padding:.25rem .4rem;margin-top:.25rem;
   border:2px solid #ccc;border-radius:6px;font-size:1rem;font-family:inherit;
 }
 button{
@@ -100,7 +100,7 @@ button{
 
 <section id="config">
   <label id="lblTarget"></label>
-  <input id="targetNumber" type="number" min="2" max="50" value="10">
+  <input id="targetNumbers" type="text" value="10" placeholder="8 9 10">
   <label id="lblTime"></label>
   <input id="timeLimit" type="number" min="30" max="180" value="90">
   <button id="generateBtn"></button>
@@ -128,16 +128,18 @@ button{
 
 /* ---------- i18n ---------- */
 const dict={
-  en:{target:'Target Number',time:'Time Limit (s)',gen:'Generate',sub:'Submit',
+  en:{target:'Target Numbers',time:'Time Limit (s)',gen:'Generate',sub:'Submit',
       stats:(c,b)=>`Today: ${c} ｜ Best ${b}`,
       few:n=>`Only ${n} unique splits.`,
-      perfect:'Perfect!',allRight:'All correct!',overtime:s=>`Overtime ${s}s`,
-      score:s=>`Score ${s}`,timeTxt:s=>`Time ${s}s`,ok:'Okay'},
+      perfect:'Perfect!',allRight:'All correct! Try faster!',
+      score:s=>`Score ${s}`,timeTxt:s=>`Time ${s}s`,
+      try:'Keep going! Try again!',ok:'Okay'},
   zh:{target:'拆分目标数',time:'时间限制 (秒)',gen:'生成题目',sub:'交卷',
       stats:(c,b)=>`今日已练习 ${c} 次 ｜ 最高 ${b}`,
       few:n=>`唯一拆分仅 ${n} 种，题量已减少。`,
-      perfect:'满分！太棒啦！',allRight:'全对！再快一点！',overtime:s=>`超时 ${s}s`,
-      score:s=>`本次得分：${s}`,timeTxt:s=>`用时 ${s}s`,ok:'知道啦'}
+      perfect:'满分！太棒啦！',allRight:'全对！再快一点！',
+      score:s=>`本次得分：${s}`,timeTxt:s=>`用时 ${s}s`,
+      try:'要努力哦，再来一遍！',ok:'知道啦'}
 };
 const lang=navigator.language?.toLowerCase().startsWith('zh')?'zh':'en';
 const t=dict[lang];
@@ -163,7 +165,16 @@ updateStats();
 
 /* ---------- State ---------- */
 let timer=null,rainTimer=null,startTime=0,timeLeft=0,qTimes=[],curIdx=null,focusStart=null;
-const animals=['🦫','🐰','🐱','🐶','🐼','🐵','🦊','🦝','🦔','🐢','🦄','🐧','🦉'];
+const animals = [
+  '🐶','🐱','🐭','🐹','🐰','🐻','🐼','🦊','🐵','🐮',
+  '🐷','🐸','🐔','🐤','🐣','🐥','🐦','🐧','🦆','🦅',
+  '🦉','🦇','🐺','🐗','🐴','🦄','🦓','🦌','🐢','🐍',
+  '🦎','🦖','🦕','🐌','🐞','🐜','🦋','🐝','🦗','🐙',
+  '🦑','🦐','🦞','🐠','🐟','🐡','🦈','🐬','🐳','🐋',
+  '🐊','🐘','🦏','🐪','🐫','🐐','🐑','🐏','🐂','🐃',
+  '🐄','🐖','🦃','🕊','🐇','🐈','🐕','🐩'
+];
+const poops  =['💩','💩','💩'];
 
 /* ---------- Functions ---------- */
 const stopRain=()=>{if(rainTimer)clearInterval(rainTimer);document.querySelectorAll('.faller').forEach(el=>el.remove());};
@@ -184,21 +195,38 @@ function generate(){
   dateKey=todayKey(); if(!store[dateKey])store[dateKey]={count:0,best:0}; updateStats();
   stopRain(); if(timer)clearInterval(timer);
 
-  const target=Math.max(2,+$('targetNumber').value||10),
-        limit =+$('timeLimit').value||90;
+  /* Parse target numbers */
+  const raw=$('targetNumbers').value.trim().replace(/,/g,' ');
+  let targets=raw.split(/\s+/).map(s=>parseInt(s,10)).filter(n=>!isNaN(n)&&n>=2&&n<=50);
+  if(!targets.length)targets=[10];
+  if(targets.length>3)targets=targets.slice(0,3);
 
-  let blanks=shuffle([...Array(target+1).keys()]).slice(0,Math.min(10,target+1));
-  if(blanks.length<10)alert(t.few(blanks.length));
+  const limit=+$('timeLimit').value||90;
+  const totalQ=10;
+  const base=Math.floor(totalQ/targets.length);
+  let rem=totalQ%targets.length;
+
+  const pairs=[]; // {need,target}
+  targets.forEach(tg=>{
+    const cnt=base+(rem>0?1:0);
+    if(rem>0)rem--;
+    const pool=shuffle([...Array(tg+1).keys()]);
+    const take=Math.min(cnt,pool.length);
+    if(pool.length<cnt)alert(t.few(pool.length));
+    for(let i=0;i<take;i++)pairs.push({need:pool[i],target:tg});
+  });
+
+  shuffle(pairs);
 
   const list=$('questionList');list.innerHTML='';
-  blanks.forEach((b,i)=>{
+  pairs.forEach((p,i)=>{
     const li=document.createElement('li');li.className='question';
-    li.innerHTML=`<input type="number" class="ans" data-i="${i}" data-ans="${b}"> + ${target-b} = ${target} <span class="timeSpan"></span>`;
+    li.innerHTML=`<input type="number" class="ans" data-i="${i}" data-ans="${p.need}"> + ${p.target-p.need} = ${p.target} <span class="timeSpan"></span>`;
     list.appendChild(li);
   });
 
   /* focus tracking */
-  qTimes=new Array(blanks.length);
+  qTimes=new Array(pairs.length);
   list.querySelectorAll('.ans').forEach(inp=>{
     inp.onfocus=()=>{
       const idx=+inp.dataset.i,now=Date.now();
@@ -225,9 +253,10 @@ function generate(){
 function grade(){
   if(timer)clearInterval(timer);if(curIdx!==null)qTimes[curIdx]+=Date.now()-focusStart;
 
-  let score=0,all=true;
+  let score=0,answered=false,all=true;
   document.querySelectorAll('.ans').forEach(inp=>{
     const idx=+inp.dataset.i,need=+inp.dataset.ans,val=+inp.value;
+    if(inp.value!=='')answered=true;
     if(val===need)score+=10; else{all=false;if(inp.value!=='')inp.parentNode.classList.add('wrong');}
     if(inp.value==='')inp.parentNode.classList.add('missing');
     inp.disabled=true;const t=qTimes[idx]||0;
@@ -240,14 +269,36 @@ function grade(){
   store[dateKey].count++;if(score>store[dateKey].best)store[dateKey].best=score;
   localStorage.setItem('nsc',JSON.stringify(store));updateStats();
 
-  const used=((Date.now()-startTime)/1000).toFixed(1),
-        over=Math.max(0,used-+$('timeLimit').value).toFixed(1);
-  let emoji='⭐';
-  if(all&&over==0){$('resultTitle').innerText=t.perfect;$('resultDetails').innerText=t.timeTxt(used);emoji=animals[randInt(0,animals.length-1)];}
-  else if(all){$('resultTitle').innerText=t.allRight;$('resultDetails').innerText=`${t.overtime(over)} ｜ ${t.score(score)}`;}
-  else{$('resultTitle').innerText=t.score(score);$('resultDetails').innerText=t.timeTxt(used);}
-  $('resultDialog').classList.remove('hidden');$('submitBtn').classList.add('hidden');
-  startRain(emoji);
+  const used=((Date.now()-startTime)/1000).toFixed(1);
+  const over=Math.max(0,used-+$('timeLimit').value);
+
+  let emoji=null,title='',detail='';
+
+  // --- Determine result category ---
+  if(all && over===0){               // Perfect within time → animals
+    title=t.perfect;
+    detail=t.timeTxt(used);
+    emoji=animals[randInt(0,animals.length-1)];
+  }else if(over>0 && all){           // Overtime but 100 → star
+    title=t.allRight;
+    detail=`${t.timeTxt(used)} ｜ ${t.score(score)}`;
+    emoji='⭐';
+  }else if(over===0 && score===90){  // Within time 90 → star
+    title=t.score(score);
+    detail=t.timeTxt(used);
+    emoji='⭐';
+  }else{                             // Other cases → poop
+    title=t.score(score);
+    detail=`${t.timeTxt(used)} ｜ ${t.try}`;
+    emoji=poops[randInt(0,poops.length-1)];
+  }
+
+  $('resultTitle').innerText=title;
+  $('resultDetails').innerText=detail;
+  $('resultDialog').classList.remove('hidden');
+  $('submitBtn').classList.add('hidden');
+
+  if(emoji)startRain(emoji); else stopRain();
 }
 
 /* ---------- Event bindings ---------- */
